@@ -13,6 +13,7 @@ namespace chassis_controller {
 
         controller_nh.getParam("Wheel_track",Wheel_track);
         controller_nh.getParam("Wheel_base",Wheel_base);
+        controller_nh.getParam("ChassisSpeedMode", ChassisSpeedMode);
 
         //get joint handle from hardware interface
         front_left_joint_ = effort_joint_interface->getHandle("left_front_wheel_joint");
