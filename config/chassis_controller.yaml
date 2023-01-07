@@ -5,8 +5,8 @@ controller:
     front_right_pid: { p: 7.0, i: 0, d: 0.0012 }
     back_left_pid: { p: 7.0, i: 0, d: 0.0012 }
     back_right_pid: { p: 7.0, i: 0, d: 0.0012 }
-    Wheel_track: 0.400
-    Wheel_base: 0.400
+    Wheel_track: 0.4
+    Wheel_base: 0.4
     ChassisSpeedMode: False
     
   joint_state_controller:
