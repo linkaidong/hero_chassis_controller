@@ -1,3 +1,7 @@
+//
+// Created by LKD on 2023/1/7.
+//
+
 #include "chassis_controller.h"
 #include <pluginlib/class_list_macros.hpp>
 
@@ -10,7 +14,6 @@ namespace chassis_controller {
 
     bool ChassisController::init(hardware_interface::EffortJointInterface *effort_joint_interface,
                                      ros::NodeHandle &root_nh, ros::NodeHandle &controller_nh) {
-
         controller_nh.getParam("Wheel_track",Wheel_track);
         controller_nh.getParam("Wheel_base",Wheel_base);
         controller_nh.getParam("ChassisSpeedMode", ChassisSpeedMode);
@@ -31,16 +34,16 @@ namespace chassis_controller {
         V_y = 0.0;
         V_yaw = 0.0;
 
-        // // Start realtime state publisher
+        //Start realtime state publisher
         controller_state_publisher_ = std::make_unique<realtime_tools::RealtimePublisher<control_msgs::JointControllerState>>(root_nh, "state", 1);
 
         sub = root_nh.subscribe<geometry_msgs::Twist>("cmd_vel", 1, &ChassisController::get_chassis_state, this);
         pub = root_nh.advertise<nav_msgs::Odometry>("odom", 50);
+
         return true;
     }
     
     void ChassisController::update(const ros::Time &time, const ros::Duration &period) {
-
         now_time = time;
 
         vel_wheel_real[1] = front_left_joint_.getVelocity();
@@ -64,16 +67,14 @@ namespace chassis_controller {
         error[3] = vel_wheel_expectation[3] - vel_wheel_real[3];
         error[4] = vel_wheel_expectation[4] - vel_wheel_real[4];
 
-        // //set command for wheels; pid_controller.computeCommand :returns PID command
+        //set command for wheels; pid_controller.computeCommand :returns PID command
         front_left_joint_.setCommand(front_left_pid_controller.computeCommand(error[1], period));
         front_right_joint_.setCommand(front_right_pid_controller.computeCommand(error[2], period));
         back_left_joint_.setCommand(back_left_pid_controller.computeCommand(error[3], period));
         back_right_joint_.setCommand(back_right_pid_controller.computeCommand(error[4], period));
 
-        if(loop_count_ % 10 == 0)
-        {
-            if(controller_state_publisher_ && controller_state_publisher_->trylock())
-            {
+        if(loop_count_ % 10 == 0){
+            if(controller_state_publisher_ && controller_state_publisher_->trylock()){
                 controller_state_publisher_->msg_.header.stamp = time;
                 controller_state_publisher_->msg_.set_point = vel_wheel_expectation[1];
                 controller_state_publisher_->msg_.process_value = vel_wheel_real[1];
@@ -89,7 +90,8 @@ namespace chassis_controller {
                 controller_state_publisher_->msg_.i_clamp,
                 dummy,
                 antiwindup);
-                controller_state_publisher_->msg_.antiwindup = static_cast<char>(antiwindup);//msg_.antiwindup's type is unsigned char
+                //msg_.antiwindup's type is unsigned char
+                controller_state_publisher_->msg_.antiwindup = static_cast<char>(antiwindup);
                 controller_state_publisher_->unlockAndPublish();
             }
         }
@@ -119,8 +121,8 @@ namespace chassis_controller {
     }  
 
     void ChassisController::Transform_broadcast() {
-
-        dt = (now_time - last_time).toSec(); //Convert to seconds
+        //Convert to seconds
+        dt = (now_time - last_time).toSec();
 
         //compute odometry in a typical way given the velocities of the robot
         double delta_displacement_x = (Vx_chassis * cos(theta) - Vy_chassis * sin(theta)) * dt;
@@ -146,9 +148,9 @@ namespace chassis_controller {
     }
 
     void ChassisController::Odometry_publish() {
-
         odom.header.stamp = now_time;
         odom.header.frame_id = "odom";
+
         //set the position
         odom.pose.pose.position.x = displacement_x;
         odom.pose.pose.position.y = displacement_y;
@@ -172,13 +174,16 @@ namespace chassis_controller {
             stamped_in.vector.y = V_y;
             stamped_in.vector.z = 0.0;
 
-            //Wait for connection between two transformers 
-            listener.waitForTransform("base_link", "odom", ros::Time(0), ros::Duration(3.0));//ros::Duration(3.0)：Blocking wait timeout
-            listener.lookupTransform("base_link", "odom", ros::Time(0), transform);//ros::Time(0)：Use the latest tf data in the buffer
+            //Wait for connection between two transformers; ros::Duration(3.0)：Blocking wait timeout
+            //ros::Time(0)：Use the latest tf data in the buffer
+            listener.waitForTransform("base_link", "odom", ros::Time(0), ros::Duration(3.0));
+            listener.lookupTransform("base_link", "odom", ros::Time(0), transform);
             listener.transformVector("base_link", stamped_in, stamped_out);
             V_x = stamped_out.vector.x;
             V_y = stamped_out.vector.y;
         }
     }
-}
+
+}// namespace chassis_controller
+
 PLUGINLIB_EXPORT_CLASS(chassis_controller::ChassisController, controller_interface::ControllerBase)
